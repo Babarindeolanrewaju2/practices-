@@ -18,8 +18,10 @@ TWITTER_API_SECRET = 'your_twitter_api_secret'
 @app.route('/login/google', methods=['POST'])
 def login_google():
     token = request.json.get('token')
+    if not token:
+        return jsonify({'error': 'No token provided'}), 400
+
     try:
-        # Verify the Google ID token
         idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
         user_info = {
             'id': idinfo['sub'],
@@ -28,26 +30,30 @@ def login_google():
             'picture': idinfo['picture']
         }
         return jsonify(user_info)
-    except ValueError:
-        return jsonify({'error': 'Invalid token'}), 401
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 401
 
 @app.route('/login/facebook', methods=['POST'])
 def login_facebook():
     token = request.json.get('token')
+    if not token:
+        return jsonify({'error': 'No token provided'}), 400
+
     try:
-        # Verify the Facebook access token
         graph = facebook.GraphAPI(access_token=token)
         user_info = graph.get_object('me', fields='id,name,email,picture.type(large)')
         return jsonify(user_info)
-    except facebook.exceptions.OAuthException:
-        return jsonify({'error': 'Invalid token'}), 401
+    except facebook.exceptions.OAuthException as e:
+        return jsonify({'error': str(e)}), 401
 
 @app.route('/login/twitter', methods=['POST'])
 def login_twitter():
     token = request.json.get('token')
     token_secret = request.json.get('tokenSecret')
+    if not token or not token_secret:
+        return jsonify({'error': 'No token or token secret provided'}), 400
+
     try:
-        # Verify the Twitter access token
         auth = tweepy.OAuthHandler(TWITTER_API_KEY, TWITTER_API_SECRET)
         auth.set_access_token(token, token_secret)
         api = tweepy.API(auth)
@@ -59,8 +65,8 @@ def login_twitter():
             'profile_image_url': user.profile_image_url
         }
         return jsonify(user_info)
-    except tweepy.TweepyException:
-        return jsonify({'error': 'Invalid token'}), 401
+    except tweepy.TweepyException as e:
+        return jsonify({'error': str(e)}), 401
 
 if __name__ == '__main__':
     app.run(debug=True)
