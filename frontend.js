@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { useEffect } from 'react'
+
 import { GoogleLogin } from 'google-auth-library'
 import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props'
 import { TwitterLogin } from 'twitter-api-client'
@@ -6,6 +8,26 @@ import { TwitterLogin } from 'twitter-api-client'
 const OAuthLogin = () => {
   const [userInfo, setUserInfo] = useState(null)
 
+  useEffect(() => {
+    // Check for the token in localStorage on page load
+    const googleToken = localStorage.getItem('googleToken')
+    const facebookToken = localStorage.getItem('facebookToken')
+    const twitterToken = localStorage.getItem('twitterToken')
+    const twitterTokenSecret = localStorage.getItem('twitterTokenSecret')
+
+    if (googleToken) {
+      handleGoogleLogin({ tokenId: googleToken })
+    } else if (facebookToken) {
+      handleFacebookLogin({ accessToken: facebookToken })
+    } else if (twitterToken && twitterTokenSecret) {
+      handleTwitterLogin({
+        oauth_access_token: twitterToken,
+        oauth_access_token_secret: twitterTokenSecret
+      })
+    }
+  }, [])
+
+  // Google OAuth 2.0 example
   const handleGoogleLogin = async response => {
     try {
       const res = await fetch('/login/google', {
@@ -15,8 +37,11 @@ const OAuthLogin = () => {
         },
         body: JSON.stringify({ token: response.tokenId })
       })
+
       if (res.ok) {
         const userInfo = await res.json()
+        // Store the Google ID token in localStorage
+        localStorage.setItem('googleToken', response.tokenId)
         setUserInfo(userInfo)
       } else {
         console.error('Error logging in with Google:', res.status)
@@ -26,6 +51,7 @@ const OAuthLogin = () => {
     }
   }
 
+  // Facebook OAuth 2.0 example
   const handleFacebookLogin = async response => {
     try {
       const res = await fetch('/login/facebook', {
@@ -35,8 +61,11 @@ const OAuthLogin = () => {
         },
         body: JSON.stringify({ token: response.accessToken })
       })
+
       if (res.ok) {
         const userInfo = await res.json()
+        // Store the Facebook access token in localStorage
+        localStorage.setItem('facebookToken', response.accessToken)
         setUserInfo(userInfo)
       } else {
         console.error('Error logging in with Facebook:', res.status)
@@ -46,6 +75,7 @@ const OAuthLogin = () => {
     }
   }
 
+  // Twitter OAuth 2.0 example
   const handleTwitterLogin = async response => {
     try {
       const res = await fetch('/login/twitter', {
@@ -58,8 +88,15 @@ const OAuthLogin = () => {
           tokenSecret: response.oauth_access_token_secret
         })
       })
+
       if (res.ok) {
         const userInfo = await res.json()
+        // Store the Twitter access token and token secret in localStorage
+        localStorage.setItem('twitterToken', response.oauth_access_token)
+        localStorage.setItem(
+          'twitterTokenSecret',
+          response.oauth_access_token_secret
+        )
         setUserInfo(userInfo)
       } else {
         console.error('Error logging in with Twitter:', res.status)
